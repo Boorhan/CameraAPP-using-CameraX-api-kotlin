@@ -1,0 +1,2 @@
+rootProject.name = "CameraApp using CameraX API kotlin"
+include ':app'
