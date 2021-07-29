@@ -2,6 +2,7 @@ package com.example.cameraappusingcameraxapikotlin
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -9,6 +10,8 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.SystemClock
 import android.util.Log
+import android.view.OrientationEventListener
+import android.view.Surface
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -103,8 +106,23 @@ class recordVideo : AppCompatActivity(){
             val intent = Intent(this@recordVideo, MainActivity::class.java)
             startActivity(intent)
         }
-    }
 
+        // rotation handle
+        val orientationEventListener = object : OrientationEventListener(this as Context) {
+            @SuppressLint("RestrictedApi")
+            override fun onOrientationChanged(orientation : Int) {
+                // Monitors orientation values to determine the target rotation value
+                val rotation : Int = when (orientation) {
+                    in 45..134 -> Surface.ROTATION_270
+                    in 135..224 -> Surface.ROTATION_180
+                    in 225..314 -> Surface.ROTATION_90
+                    else -> Surface.ROTATION_0
+                }
+                videoCapture?.setTargetRotation(rotation)
+            }
+        }
+        orientationEventListener.enable()
+    }
 
     @SuppressLint("RestrictedApi")
     private fun startCamera() {
