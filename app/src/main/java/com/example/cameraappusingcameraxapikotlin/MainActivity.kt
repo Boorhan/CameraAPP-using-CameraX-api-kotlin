@@ -1,22 +1,20 @@
 package com.example.cameraappusingcameraxapikotlin
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Camera
 import android.os.Bundle
-import android.os.Environment
 import android.util.Log
 import android.view.OrientationEventListener
 import android.view.Surface
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.Preview
+import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.CameraController
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.cameraappusingcameraxapikotlin.databinding.ActivityMainBinding
@@ -30,10 +28,14 @@ class MainActivity : AppCompatActivity() {
 
     private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
 
+    private var camSelectorGlobal = CameraSelector.DEFAULT_BACK_CAMERA
+
+
     var camera:Camera?=null
     var preview:Preview?=null
     var imageCapture:ImageCapture?=null
     var cameraSelector:CameraSelector?=null
+    var cameraController: CameraController?=null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -62,6 +64,10 @@ class MainActivity : AppCompatActivity() {
             savePhoto()
         }
 
+        binding.btnCameraFlip.setOnClickListener{
+            toggleCamera()
+        }
+
         // orientation handle
         val orientationEventListener = object :OrientationEventListener(this as Context) {
             override fun onOrientationChanged(orientation : Int) {
@@ -76,6 +82,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
         orientationEventListener.enable()
+    }
+
+
+    private fun toggleCamera() {
+
+        if (camSelectorGlobal == CameraSelector.DEFAULT_FRONT_CAMERA) {
+            camSelectorGlobal = CameraSelector.DEFAULT_BACK_CAMERA
+            Toast.makeText(this, "Switched to Back-Camera", Toast.LENGTH_SHORT).show()
+        } else if (camSelectorGlobal == CameraSelector.DEFAULT_BACK_CAMERA) {
+            camSelectorGlobal = CameraSelector.DEFAULT_FRONT_CAMERA
+            Toast.makeText(this, "Switched to Front-Camera", Toast.LENGTH_SHORT).show()
+        }
+        startCamera()
+
     }
 
     private fun allPermissionsGranted(): Boolean {
@@ -100,15 +120,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
+
     private fun savePhoto() {
         //save the photo
-
-//        val file = Environment.getExternalStorageDirectory()
-//        val dir = File(file.absolutePath + "/MyPics")
-//        dir.mkdirs()
-//
-//        val filename = String.format("%d.png", System.currentTimeMillis())
-//        val outFile = File(dir, "CameraApp-${System.currentTimeMillis()}.jpg")
 
         //val photoFile = File(externalMediaDirs.firstOrNull(), "CameraApp-${System.currentTimeMillis()}.jpg")
         val photoFile = File(externalMediaDirs.firstOrNull(), "CameraApp-${System.currentTimeMillis()}.jpg")
@@ -126,23 +141,19 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun saveTogaller(){
 
-    }
-
-
+    @SuppressLint("WrongConstant")
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener(Runnable {
             val cameraProvider=cameraProviderFuture.get()
             preview=Preview.Builder().build()
-            preview?.setSurfaceProvider(binding.cameraView.surfaceProvider)
+            preview?.setSurfaceProvider(binding.cameraView?.surfaceProvider)
             imageCapture=ImageCapture.Builder().build()
-
-            cameraSelector= CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
+            cameraSelector = CameraSelector.Builder().build()
 
             cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(this, cameraSelector!!,preview,imageCapture)
+            cameraProvider.bindToLifecycle(this, camSelectorGlobal,preview,imageCapture)
                 .also {camera}
         },ContextCompat.getMainExecutor(this))
 

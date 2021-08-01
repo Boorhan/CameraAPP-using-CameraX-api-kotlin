@@ -15,6 +15,7 @@ import android.view.Surface
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.core.VideoCapture
@@ -32,13 +33,15 @@ class recordVideo : AppCompatActivity(){
 
     private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
     
-    //var camera:Camera?=null
+    var camera:Camera?=null
     var preview:Preview?=null
     //var videoCapture: VideoCapture?=null
     var cameraSelector:CameraSelector?=null
 
     var videoCapture:VideoCapture?=null
     //private val outputDirectory = getOutputDirectory()
+
+    private var camSelectorGlobal = CameraSelector.DEFAULT_BACK_CAMERA
 
     private lateinit var binding: ActivityRecordVideoBinding
 
@@ -59,19 +62,10 @@ class recordVideo : AppCompatActivity(){
         if (allPermissionsGranted()) {
             //binding.viewFinder.post { startCamera() }
             startCamera()
-            //startRecording()
+
         } else {
-            ActivityCompat.requestPermissions(
-                this, REQUIRED_PERMISSIONS, 0)
+            ActivityCompat.requestPermissions(this@recordVideo, REQUIRED_PERMISSIONS, 0)
         }
-            // Request camera permissions
-            if (allPermissionsGranted()) {
-                //binding.viewFinder.post { startCamera() }
-                startCamera()
-                //startRecording()
-            } else {
-                ActivityCompat.requestPermissions(this@recordVideo, REQUIRED_PERMISSIONS, 0)
-            }
 
         binding.startVideo.setOnClickListener{
             Toast.makeText(baseContext, "Video Recording Started", Toast.LENGTH_SHORT).show()
@@ -107,6 +101,10 @@ class recordVideo : AppCompatActivity(){
             startActivity(intent)
         }
 
+        binding.btnCameraFlip.setOnClickListener{
+            toggleCamera()
+        }
+
         // rotation handle
         val orientationEventListener = object : OrientationEventListener(this as Context) {
             @SuppressLint("RestrictedApi")
@@ -124,6 +122,18 @@ class recordVideo : AppCompatActivity(){
         orientationEventListener.enable()
     }
 
+    private fun toggleCamera() {
+
+        if (camSelectorGlobal == CameraSelector.DEFAULT_FRONT_CAMERA) {
+            camSelectorGlobal = CameraSelector.DEFAULT_BACK_CAMERA
+            Toast.makeText(this, "Switched to Back-Camera", Toast.LENGTH_SHORT).show()
+        } else if (camSelectorGlobal == CameraSelector.DEFAULT_BACK_CAMERA) {
+            camSelectorGlobal = CameraSelector.DEFAULT_FRONT_CAMERA
+            Toast.makeText(this, "Switched to Front-Camera", Toast.LENGTH_SHORT).show()
+        }
+        startCamera()
+    }
+
     @SuppressLint("RestrictedApi")
     private fun startCamera() {
         Log.i("custom","I am Under StartCamera")
@@ -134,7 +144,7 @@ class recordVideo : AppCompatActivity(){
             preview?.setSurfaceProvider(binding.viewFinder.surfaceProvider)
             // imageCapture= ImageCapture.Builder().build()
 
-            cameraSelector= CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
+            cameraSelector= CameraSelector.Builder().build()
 
             videoCapture = VideoCapture.Builder().apply {
                 setTargetRotation(binding.viewFinder.display.rotation)
@@ -143,7 +153,7 @@ class recordVideo : AppCompatActivity(){
             // videoCapture = VideoCapture(videoCaptureConfig)
 
             cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(this, cameraSelector!!, preview, videoCapture)
+            cameraProvider.bindToLifecycle(this, camSelectorGlobal, preview, videoCapture).also {camera}
         },ContextCompat.getMainExecutor(this))
 
     }
